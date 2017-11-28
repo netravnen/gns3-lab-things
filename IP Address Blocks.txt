@@ -1,0 +1,58 @@
+Address Block       Present Use                  Reference
+--------------------------------------------------------------------
+0.0.0.0/8           "This" Network               RFC 1122, Section 3.2.1.3
+10.0.0.0/8          Private-Use Networks         RFC 1918
+14.0.0.0/8          Public-Data Networks         RFC 1700, page 181
+100.64.0.0/10       Shared Address Space         RFC 6598
+127.0.0.0/8         Loopback                     RFC 1122, Section 3.2.1.3
+169.254.0.0/16      Link Local                   RFC 3927
+172.16.0.0/12       Private-Use Networks         RFC 1918
+192.0.0.0/24        IETF Protocol Assignments    RFC 6890, Section 2.1
+192.0.0.0/29 [1]    DS-Lite                      RFC 6333
+192.0.2.0/24        TEST-NET-1                   RFC 5737
+192.88.99.0/24      6to4 Relay Anycast           RFC 3068
+192.168.0.0/16      Private-Use Networks         RFC 1918
+198.18.0.0/15       Network Interconnect         
+                       Device Benchmark Testing  RFC 2544
+198.51.100.0/24     TEST-NET-2                   RFC 5737
+203.0.113.0/24      TEST-NET-3                   RFC 5737
+224.0.0.0/4         Multicast                    RFC 3171
+240.0.0.0/4         Reserved for Future Use      RFC 1112, Section 4
+255.255.255.255/32  Limited Broadcast            RFC 0919, Section 7
+                                                 RFC 0922, Section 7
+::1/128             Loopback Address             RFC 4291
+::/128              Unspecified Address          RFC 4291
+64:ff9b::/96        IPv4-IPv6 Translat.          RFC 6052
+::ffff:0:0/96       IPv4-mapped Address          RFC 4291
+100::/64            Discard-Only Address Block   RFC 6666
+2001::/23           IETF Protocol Assignments    RFC 2928
+2001::/32           TEREDO                       RFC 4380
+2001:2::/48         Benchmarking                 RFC 5180
+2001:db8::/32       Documentation                RFC 3849
+2001:10::/28        ORCHID                       RFC 4843
+2002::/16 [2]       6to4                         RFC 3056
+fc00::/7            Unique-Local                 RFC 4193
+fe80::/10           Linked-Scoped Unicast        RFC 4291
+
+
+ip prefix-list permit-lans permit 10.0.0.0/8 ge 24     ! Allow prefixes >=/24
+ip prefix-list permit-lans permit 172.16.0.0/12 ge 24  ! Allow prefixes >=/24
+ip prefix-list permit-lans permit 192.168.0.0/16 ge 24 ! Allow prefixes >=/24
+ip prefix-list permit-lans deny 0.0.0.0/0 le 32        ! Deny everthing else
+
+ip prefix-list deny-bogons deny   0.0.0.0/8 le 32      ! Block default route
+ip prefix-list deny-bogons deny   10.0.0.0/8 le 32
+ip prefix-list deny-bogons deny   100.64.0.0/10 le 32
+ip prefix-list deny-bogons deny   127.0.0.0/8 le 32
+ip prefix-list deny-bogons deny   169.254.0.0/16 le 32
+ip prefix-list deny-bogons deny   172.16.0.0/12 le 32
+ip prefix-list deny-bogons deny   192.0.0.0/24 le 32
+ip prefix-list deny-bogons deny   192.0.2.0/24 le 32
+ip prefix-list deny-bogons deny   192.168.0.0/16 le 32
+ip prefix-list deny-bogons deny   198.18.0.0/15 le 32
+ip prefix-list deny-bogons deny   198.51.100.0/24 le 32
+ip prefix-list deny-bogons deny   203.0.113.0/24 le 32
+ip prefix-list deny-bogons deny   224.0.0.0/4 le 32
+ip prefix-list deny-bogons deny   240.0.0.0/4 le 32
+ip prefix-list deny-bogons deny   0.0.0.0/0 ge 25      ! Block prefixes >/24
+ip prefix-list deny-bogons permit 0.0.0.0/0 le 24      ! Permit prefixes <=/24
