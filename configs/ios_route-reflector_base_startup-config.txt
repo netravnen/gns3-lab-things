@@ -1,0 +1,343 @@
+!
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+service counters max age 10
+!
+hostname %h
+!
+boot-start-marker
+boot-end-marker
+!
+logging buffered notifications
+no logging console
+!
+no aaa new-model
+clock timezone MET 1 0
+clock summer-time MET-DST recurring last Sun Mar 2:00 last Sun Oct 3:00
+!
+no ip domain lookup
+ip domain name cisco.tld
+ip cef
+ipv6 unicast-routing
+ipv6 cef
+!
+mpls discovery vpn next-hop
+mpls export vpnv4 prefixes
+mpls ip default-route
+mpls ip propagate-ttl
+mpls label mode all-vrfs protocol bgp-vpnv4 per-prefix
+mpls label protocol ldp
+mpls ldp explicit-null
+mpls ldp graceful-restart
+mpls ldp logging neighbor-changes
+mpls ldp logging password configuration rate-limit 10
+mpls ldp logging password rollover rate-limit 10
+mpls ldp password rollover duration 65535
+mpls ldp password required for BACKBONE-P2P
+mpls ldp password option 17853 for BACKBONE-P2P key-chain mpls-pw
+mpls ldp loop-detection
+mpls ldp maxhops 20
+mpls ldp router-id Loopback0 force
+mpls ldp session protection duration 604800
+mpls ldp tcp pak-priority
+mpls traffic-eng auto-bw timers frequency 7
+mpls traffic-eng auto-tunnel backup nhop-only
+mpls traffic-eng auto-tunnel backup timers removal unused 0 0
+mpls traffic-eng auto-tunnel backup tunnel-num min 11001 max 15000
+mpls traffic-eng auto-tunnel mesh
+mpls traffic-eng auto-tunnel mesh tunnel-num min 5001 max 10000
+mpls traffic-eng auto-tunnel primary config mpls ip
+mpls traffic-eng auto-tunnel primary onehop
+mpls traffic-eng auto-tunnel primary tunnel-num min 1001 max 5000
+mpls traffic-eng fast-reroute backup-prot-preempt optimize-bw
+mpls traffic-eng fast-reroute timers promotion 1800
+mpls traffic-eng link-management timers periodic-flooding 30
+mpls traffic-eng path-selection metric igp
+mpls traffic-eng reoptimize events link-up
+mpls traffic-eng signalling forwarding sync
+mpls traffic-eng topology holddown sigerr 300
+mpls traffic-eng topology mesh-group accept-domain
+mpls traffic-eng tunnels
+clns configuration-time 30
+clns holding-time 90
+clns routing
+multilink bundle-name authenticated
+!
+key chain mpls-pw
+ key 3728324
+  key-string 7 012B16550E27290778617E5A082D34405A55532B7D36323A6108301D2C2C10640B4D697F0F2F493D7F7571755D01420E43570474540F2A3237592E082C0A5E6804313005152E1D501A06091C39063A0708
+  accept-lifetime local 00:00:00 Jan 1 1993 infinite
+  send-lifetime local 00:00:00 Jan 1 1993 infinite
+key chain isis-pw
+ key 432432
+  key-string 7 012B16550E27290778617E5A082D34405A55532B7D36323A6108301D2C2C10640B4D697F0F2F493D7F7571755D01420E43570474540F2A3237592E082C0A5E6804313005152E1D501A06091C39063A0708
+  accept-lifetime local 00:00:00 Jan 1 1993 infinite
+  send-lifetime local 00:00:00 Jan 1 1993  infinite
+!
+password encryption aes
+!
+ip tcp synwait-time 5
+ip ssh logging events
+ip ssh version 2
+!
+interface Loopback0
+ description Backbone MGMT Interface - SHUTdown
+ ip address 223.255.255.255 255.255.255.255
+!
+interface FastEthernet0/0
+ description Backbone P2P interface - SHUTdown
+ mtu 1530
+ load-interval 30
+ ipv6 address autoconfig
+ mpls ip
+!
+interface FastEthernet1/0
+ description Backbone P2P interface - SHUTdown
+ mtu 1530
+ load-interval 30
+ ipv6 address autoconfig
+ mpls ip
+!
+router eigrp 998
+ no auto-summary
+ timers active-time 2
+ traffic-share min across-interfaces
+ maximum-paths 6
+ variance 3
+ redistribute static route-map IGP
+ redistribute connected route-map IGP
+ passive-interface Loopback0
+ eigrp log-neighbor-warnings 100
+ eigrp event-log-size 65534
+ network 192.0.2.0
+ network 198.51.100.0
+ network 203.0.113.0
+!
+ipv6 router eigrp 998
+ timers active-time 2
+ maximum-paths 6
+ passive-interface Loopback0
+ eigrp log-neighbor-warnings 100
+ eigrp event-log-size 65534
+ variance 3
+ redistribute connected route-map IGP-v6
+ redistribute static route-map IGP-v6
+!
+router ospfv3 998
+ max-metric router-lsa stub-prefix-lsa inter-area-lsas external-lsa on-startup 1000
+ compatible rfc1587
+ interface-id snmp-if-index
+ queue-depth hello 10000
+ queue-depth update 10000
+ event-log size 65534
+ log-adjacency-changes detail
+ auto-cost reference-bandwidth 10000
+ limit retransmissions dc 3 non-dc 3
+ graceful-restart helper strict-lsa-checking
+ area 0.0.0.0 encryption ipsec spi 32423743 esp aes-cbc 256 7 014755547F2A232B70151851412446405F2D5D7878067B616070315443272273000F060D28503E4609010775777301597D50560A04253551500A535F5677151950 sha1 7 1326404B5E2A50090801781617044121325555020A7E04012D544F4F7D7C03750A74022F7F5E520E0F
+ area 0.0.0.0 no-transit
+ timers throttle spf 6000 10000 600000
+ timers throttle lsa 6000 10000 600000
+ timers lsa arrival 90000
+ timers pacing lsa-group 120
+ timers pacing flood 80
+ timers pacing retransmission 200
+ !
+ address-family ipv4 unicast
+  maximum-paths 6
+  redistribute connected route-map IGP
+  redistribute static route-map IGP
+ exit-address-family
+ !
+ address-family ipv6 unicast
+  maximum-paths 6
+  redistribute connected route-map IGP-v6
+  redistribute static route-map IGP-v6
+ exit-address-family
+!
+router isis
+ mpls ldp sync
+ mpls traffic-eng router-id Loopback0
+ mpls traffic-eng level-2
+ mpls traffic-eng scanner interval 30
+ is-type level-2-only
+ domain-password K2btc3E2ZtjuRBsFulbA
+ authentication key-chain isis-pw level-2
+ ispf level-2
+ metric-style wide
+ fast-flood 10
+ set-overload-bit on-startup 1000
+ max-lsp-lifetime 65535
+ lsp-refresh-interval 15
+ spf-interval 5 1 50
+ prc-interval 5 1 50
+ lsp-gen-interval 5 1 50
+ no hello padding
+ log-adjacency-changes
+ metric 100000
+ skeptical interval 15
+ redistribute connected route-map IGP
+ redistribute static ip route-map IGP
+ passive-interface Loopback0
+ maximum-paths 6
+ bfd all-interfaces
+!
+router bgp 998
+ !
+ template peer-policy RRclients
+  route-reflector-client
+  send-community both
+ exit-peer-policy
+ !
+ template peer-session RRclients
+  remote-as 998
+  transport multi-session
+  transport path-mtu-discovery
+  password 7 022C014B1B031C03434A0C1E0441445D
+  update-source Loopback0
+  version 4
+  timers 30 90 25
+  fall-over
+  ha-mode graceful-restart
+ exit-peer-session
+ !
+ no bgp fast-external-fallover
+ bgp consistency-checker auto-repair
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ !
+ address-family ipv4
+  redistribute connected
+  redistribute static
+  maximum-paths 6
+  maximum-paths ibgp 6
+  bgp suppress-inactive
+  distance bgp 199 200 200
+ exit-address-family
+ !
+ address-family ipv6
+  redistribute connected
+  redistribute static
+  maximum-paths 6
+  maximum-paths ibgp 6
+  bgp suppress-inactive
+  distance bgp 199 200 200
+ exit-address-family
+ !
+ address-family vpnv4
+ exit-address-family
+ !
+ address-family vpnv6
+ exit-address-family
+!
+ip forward-protocol nd
+!
+ip bgp-community new-format
+!
+no ip http server
+no ip http secure-server
+!
+ip prefix-list ASSIGNED-PREFIXES seq  5 permit 192.0.2.0/24
+ip prefix-list ASSIGNED-PREFIXES seq 10 permit 198.51.100.0/24
+ip prefix-list ASSIGNED-PREFIXES seq 15 permit 203.0.113.0/24
+!
+ip prefix-list BACKBONE-P2P seq 5 permit 192.0.2.0/24
+!
+ipv6 prefix-list ASSIGNED-PREFIXES-v6 seq  5 permit 2001:DB8::192:0:2:/120
+ipv6 prefix-list ASSIGNED-PREFIXES-v6 seq 10 permit 2001:DB8::198:51:100:/120
+ipv6 prefix-list ASSIGNED-PREFIXES-v6 seq 15 permit 2001:DB8::203:0:113:/120
+!
+ipv6 prefix-list BACKBONE-P2P-v6 seq 5 permit 2001:DB8::192:0:2:/120
+!
+route-map IGP permit 10
+ match interface Loopback0
+ set metric-type type-1
+ set tag 1
+ set origin igp
+!
+route-map IGP permit 20
+ match source-protocol connected
+ match ip address prefix-list BACKBONE-P2P
+ set tag 2
+ set origin igp
+!
+route-map IGP permit 30
+ match source-protocol static
+ match ip address prefix-list ASSIGNED-PREFIXES
+ set tag 3
+ set origin igp
+!
+route-map IGP-v6 permit 10
+ match interface Loopback0
+ set metric-type type-1
+ set tag 1
+ set origin igp
+!
+route-map IGP-v6 permit 20
+ match source-protocol connected
+ match ipv6 address prefix-list BACKBONE-P2P-v6
+ set tag 2
+ set origin igp
+!
+route-map IGP-v6 permit 30
+ match source-protocol static
+ match ipv6 address prefix-list ASSIGNED-PREFIXES-v6
+ set tag 3
+ set origin igp
+!
+!
+!
+control-plane
+!
+banner login ^
+/-------------------------------------------\
+| ROUTER: %h.cisco.tld |
+\-------------------------------------------/
+
+*********************************************
+*                                           *
+*   Router is only for authorized personal  *
+*                                           *
+*   You will be on the wrong side of the    *
+*   law if you do not quickly go away and   *
+*   stop doing any harm the owner of this   *
+*   router you are trying to access !!!!!   *
+*                                           *
+*   In other words: FUCK OFF !!!!!!!!!!!!   *
+*                                           *
+*********************************************
+^
+banner motd ^
+/-------------------------------------------\
+| ROUTER: %h.cisco.tld |
+\-------------------------------------------/
+
+*********************************************
+*                                           *
+*   Router is only for authorized personal  *
+*                                           *
+*   You will be on the wrong side of the    *
+*   law if you do not quickly go away and   *
+*   stop doing any harm the owner of this   *
+*   router you are trying to access !!!!!   *
+*                                           *
+*   In other words: FUCK OFF !!!!!!!!!!!!   *
+*                                           *
+*********************************************
+^
+!
+line con 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+ stopbits 1
+line aux 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+ stopbits 1
+line vty 0 4
+ login
+!
+end
