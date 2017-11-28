@@ -1,0 +1,591 @@
+!
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+service counters max age 10
+!
+hostname %h
+!
+boot-start-marker
+boot-end-marker
+!
+!
+!
+vrf definition internet
+ rd 998:998
+ route-target both 998:998
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+!
+!
+!
+logging buffered notifications
+no logging console
+!
+no aaa new-model
+clock timezone MET 1 0
+clock summer-time MET-DST recurring last Sun Mar 2:00 last Sun Oct 3:00
+!
+no ip domain lookup
+ip domain name cisco.tld
+ip cef
+ipv6 unicast-routing
+ipv6 cef
+!
+!
+!
+mpls discovery vpn next-hop
+mpls export vpnv4 prefixes
+mpls ip default-route
+mpls ip propagate-ttl
+mpls label mode all-vrfs protocol bgp-vpnv4 per-prefix
+mpls label protocol ldp
+mpls ldp explicit-null
+mpls ldp graceful-restart
+mpls ldp logging neighbor-changes
+mpls ldp logging password configuration rate-limit 10
+mpls ldp logging password rollover rate-limit 10
+mpls ldp password rollover duration 65535
+mpls ldp password required for BACKBONE-P2P
+mpls ldp password option 17853 for BACKBONE-P2P key-chain mpls-pw
+mpls ldp loop-detection
+mpls ldp maxhops 20
+mpls ldp router-id Loopback0 force
+mpls ldp session protection duration 604800
+mpls ldp tcp pak-priority
+mpls traffic-eng auto-bw timers frequency 7
+mpls traffic-eng auto-tunnel backup nhop-only
+mpls traffic-eng auto-tunnel backup timers removal unused 0 0
+mpls traffic-eng auto-tunnel backup tunnel-num min 11001 max 15000
+mpls traffic-eng auto-tunnel mesh
+mpls traffic-eng auto-tunnel mesh tunnel-num min 5001 max 10000
+mpls traffic-eng auto-tunnel primary config mpls ip
+mpls traffic-eng auto-tunnel primary onehop
+mpls traffic-eng auto-tunnel primary tunnel-num min 1001 max 5000
+mpls traffic-eng fast-reroute backup-prot-preempt optimize-bw
+mpls traffic-eng fast-reroute timers promotion 1800
+mpls traffic-eng link-management timers periodic-flooding 30
+mpls traffic-eng path-selection metric igp
+mpls traffic-eng reoptimize events link-up
+mpls traffic-eng signalling forwarding sync
+mpls traffic-eng topology holddown sigerr 300
+mpls traffic-eng topology mesh-group accept-domain
+mpls traffic-eng tunnels
+clns configuration-time 30
+clns holding-time 90
+clns routing
+multilink bundle-name authenticated
+!
+key chain mpls-pw
+ key 3728324
+  key-string 7 012B16550E27290778617E5A082D34405A55532B7D36323A6108301D2C2C10640B4D697F0F2F493D7F7571755D01420E43570474540F2A3237592E082C0A5E6804313005152E1D501A06091C39063A0708
+  accept-lifetime local 00:00:00 Jan 1 1993 infinite
+  send-lifetime local 00:00:00 Jan 1 1993 infinite
+key chain isis-pw
+ key 432432
+  key-string 7 012B16550E27290778617E5A082D34405A55532B7D36323A6108301D2C2C10640B4D697F0F2F493D7F7571755D01420E43570474540F2A3237592E082C0A5E6804313005152E1D501A06091C39063A0708
+  accept-lifetime local 00:00:00 Jan 1 1993 infinite
+  send-lifetime local 00:00:00 Jan 1 1993  infinite
+!
+password encryption aes
+!
+!
+!
+ip tcp synwait-time 5
+ip ssh logging events
+ip ssh version 2
+!
+!
+!
+interface Loopback0
+ description Backbone MGMT Interface - SHUTdown
+ ip address 223.255.255.255 255.255.255.255
+!
+interface GigabitEthernet0/0
+ description Backbone P2P interface - SHUTdown
+ mtu 4470
+ load-interval 30
+ no negotiation auto
+ ipv6 address autoconfig
+ mpls ip
+!
+interface GigabitEthernet1/0
+ description Backbone P2P interface - SHUTdown
+ mtu 4470
+ load-interval 30
+ no negotiation auto
+ ipv6 address autoconfig
+ mpls ip
+!
+interface FastEthernet2/0
+ description Backbone P2P interface - SHUTdown
+ mtu 1530
+ load-interval 30
+ ipv6 address autoconfig
+ mpls ip
+!
+interface FastEthernet2/1
+ description Backbone P2P interface - SHUTdown
+ mtu 1530
+ load-interval 30
+ ipv6 address autoconfig
+ mpls ip
+!
+interface FastEthernet3/0
+ description Backbone P2P interface - SHUTdown
+ mtu 1530
+ load-interval 30
+ ipv6 address autoconfig
+ mpls ip
+!
+interface FastEthernet3/1
+ description Backbone P2P interface - SHUTdown
+ mtu 1530
+ load-interval 30
+ ipv6 address autoconfig
+ mpls ip
+!
+!
+!
+router eigrp 998
+ no auto-summary
+ timers active-time 2
+ traffic-share min across-interfaces
+ maximum-paths 6
+ variance 3
+ redistribute static route-map IGP
+ redistribute connected route-map IGP
+ passive-interface Loopback0
+ eigrp log-neighbor-warnings 100
+ eigrp event-log-size 65534
+ network 192.0.2.0
+ network 198.51.100.0
+ network 203.0.113.0
+!
+!
+!
+ipv6 router eigrp 998
+ timers active-time 2
+ maximum-paths 6
+ passive-interface Loopback0
+ eigrp log-neighbor-warnings 100
+ eigrp event-log-size 65534
+ variance 3
+ redistribute connected route-map IGP-v6
+ redistribute static route-map IGP-v6
+!
+!
+!
+router ospfv3 998
+ max-metric router-lsa stub-prefix-lsa inter-area-lsas external-lsa on-startup 1000
+ compatible rfc1587
+ interface-id snmp-if-index
+ queue-depth hello 10000
+ queue-depth update 10000
+ event-log size 65534
+ log-adjacency-changes detail
+ auto-cost reference-bandwidth 10000
+ limit retransmissions dc 3 non-dc 3
+ graceful-restart helper strict-lsa-checking
+ area 0.0.0.0 encryption ipsec spi 32423743 esp aes-cbc 256 7 014755547F2A232B70151851412446405F2D5D7878067B616070315443272273000F060D28503E4609010775777301597D50560A04253551500A535F5677151950 sha1 7 1326404B5E2A50090801781617044121325555020A7E04012D544F4F7D7C03750A74022F7F5E520E0F
+ area 0.0.0.0 no-transit
+ timers throttle spf 6000 10000 600000
+ timers throttle lsa 6000 10000 600000
+ timers lsa arrival 90000
+ timers pacing lsa-group 120
+ timers pacing flood 80
+ timers pacing retransmission 200
+ !
+ address-family ipv4 unicast
+  maximum-paths 6
+  redistribute connected route-map IGP
+  redistribute static route-map IGP
+ exit-address-family
+ !
+ address-family ipv6 unicast
+  maximum-paths 6
+  redistribute connected route-map IGP-v6
+  redistribute static route-map IGP-v6
+ exit-address-family
+!
+!
+!
+router isis
+ mpls ldp sync
+ mpls traffic-eng router-id Loopback0
+ mpls traffic-eng level-2
+ mpls traffic-eng scanner interval 30
+ is-type level-2-only
+ domain-password K2btc3E2ZtjuRBsFulbA
+ authentication key-chain isis-pw level-2
+ ispf level-2
+ metric-style wide
+ fast-flood 10
+ set-overload-bit on-startup 1000
+ max-lsp-lifetime 65535
+ lsp-refresh-interval 15
+ spf-interval 5 1 50
+ prc-interval 5 1 50
+ lsp-gen-interval 5 1 50
+ no hello padding
+ log-adjacency-changes
+ metric 100000
+ skeptical interval 15
+ redistribute connected route-map IGP
+ redistribute static ip route-map IGP
+ passive-interface Loopback0
+ maximum-paths 6
+ bfd all-interfaces
+!
+!
+!
+router bgp 998
+ !
+ template peer-policy RRserver
+  next-hop-self
+  send-community both
+ exit-peer-policy
+ !
+ template peer-session RRserver
+  remote-as 998
+  transport multi-session
+  transport path-mtu-discovery
+  password 7 022C014B1B031C03434A0C1E0441445D
+  update-source Loopback0
+  version 4
+  timers 30 90
+  fall-over
+  ha-mode graceful-restart
+ exit-peer-session
+ !
+ template peer-policy TransitCustomer
+  remove-private-as
+  maximum-prefix 10 85
+  send-community
+ exit-peer-policy
+ !
+ template peer-session TransitCustomer
+  version 4
+  timers 40 120
+  transport multi-session
+  transport path-mtu-discovery
+ exit-peer-session
+ !
+ template peer-session PeeringPartner
+  version 4
+  timers 40 120
+  transport multi-session
+  transport path-mtu-discovery
+ exit-peer-session
+ !
+ template peer-policy external
+  maximum-prefix 1000 85
+  remove-private-as
+  send-community
+ exit-peer-policy
+ !
+ template peer-session external
+  version 4
+  timers 60 180
+  transport multi-session
+  transport path-mtu-discovery
+ exit-peer-session
+ !
+ template peer-policy MplsCustomer
+  maximum-prefix 10 85
+  next-hop-self
+  send-community standard
+ exit-peer-policy
+ !
+ template peer-session MplsCustomer
+  version 4
+  timers 40 120
+  transport path-mtu-discovery
+ exit-peer-session
+ !
+ no bgp fast-external-fallover
+ bgp consistency-checker auto-repair
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ !
+ address-family ipv4
+  redistribute connected
+  redistribute static
+  maximum-paths 6
+  maximum-paths ibgp 6
+  bgp suppress-inactive
+  distance bgp 199 200 200
+ exit-address-family
+ !
+ address-family ipv6
+  redistribute connected
+  redistribute static
+  maximum-paths 6
+  maximum-paths ibgp 6
+  bgp suppress-inactive
+  distance bgp 199 200 200
+ exit-address-family
+ !
+ address-family vpnv4
+ exit-address-family
+ !
+ address-family vpnv6
+ exit-address-family
+ !
+ address-family ipv4 vrf internet
+  redistribute connected route-map redist-to-Inet
+  redistribute static route-map redist-to-Inet
+ exit-address-family
+ !
+ address-family ipv6 vrf internet
+  redistribute connected route-map redist-to-Inetv6
+  redistribute static route-map redist-to-Inetv6
+ exit-address-family
+!
+!
+!
+ip forward-protocol nd
+!
+ip bgp-community new-format
+!
+ip community-list standard InetInternal permit 998:100
+ip community-list standard InetTransit permit 998:1000
+ip community-list standard InetPeer permit 998:2000
+ip community-list standard InetCustomer permit 998:3000
+!
+no ip http server
+no ip http secure-server
+!
+!
+!
+ip prefix-list ASSIGNED-PREFIXES seq  5 permit 192.0.2.0/24
+ip prefix-list ASSIGNED-PREFIXES seq 10 permit 198.51.100.0/24
+ip prefix-list ASSIGNED-PREFIXES seq 15 permit 203.0.113.0/24
+!
+ip prefix-list BACKBONE-P2P seq 5 permit 192.0.2.0/24
+!
+ip prefix-list InetPI seq 5 permit 0.0.0.0/0 le 24
+!
+ip prefix-list LE24 seq 5 deny 0.0.0.0/0
+ip prefix-list LE24 seq 10 permit 0.0.0.0/0 le 24
+!
+ip prefix-list ipv4-bogons seq 5  deny   0.0.0.0/8 le 32       ! Self-identification [RFC1122]
+ip prefix-list ipv4-bogons seq 10 deny   10.0.0.0/8 le 32      ! Private-Use Networks [RFC1918]
+ip prefix-list ipv4-bogons seq 15 deny   100.64.0.0/10 le 32   ! Shared Address Space [RFC6598]
+ip prefix-list ipv4-bogons seq 20 deny   127.0.0.0/8 le 32     ! Loopback [RFC1122]
+ip prefix-list ipv4-bogons seq 25 deny   169.254.0.0/16 le 32  ! Link Local [RFC3927]
+ip prefix-list ipv4-bogons seq 30 deny   172.16.0.0/12 le 32   ! Private-Use Networks [RFC1918]
+ip prefix-list ipv4-bogons seq 35 deny   192.0.0.0/24 le 32    ! IPv4 Special Purpose Address Registry [RFC5736]
+ip prefix-list ipv4-bogons seq 40 deny   192.0.2.0/24 le 32    ! TEST-NET-1 [RFC5737]
+ip prefix-list ipv4-bogons seq 45 deny   192.88.99.0/24 le 32  ! 6to4 Relay Anycast [RFC3068]
+ip prefix-list ipv4-bogons seq 50 deny   192.168.0.0/16 le 32  ! Private-Use Networks [RFC1918]
+ip prefix-list ipv4-bogons seq 55 deny   198.18.0.0/15 le 32   ! Network Interconnect Device Benchmark Testing [RFC2544]
+ip prefix-list ipv4-bogons seq 60 deny   198.51.100.0/24 le 32 ! TEST-NET-2 [RFC5737]
+ip prefix-list ipv4-bogons seq 65 deny   203.0.113.0/24 le 32  ! TEST-NET-3 [RFC5737]
+ip prefix-list ipv4-bogons seq 70 deny   224.0.0.0/3 le 32     ! Aggregated Class D and E
+ip prefix-list ipv4-bogons seq 75 deny   224.0.0.0/4 le 32     ! Multicast (formerly Class D) [RFC5771]
+ip prefix-list ipv4-bogons seq 80 deny   240.0.0.0/4 le 32     ! Future use (formerly Class E) [RFC1112]
+ip prefix-list ipv4-bogons seq 85 permit any ge 8 le 24        ! Allow all other
+!
+ip prefix-list default seq 5 permit 0.0.0.0/0
+!
+!
+!
+ipv6 prefix-list ASSIGNED-PREFIXES-v6 seq  5 permit 2001:DB8::192:0:2:/120
+ipv6 prefix-list ASSIGNED-PREFIXES-v6 seq 10 permit 2001:DB8::198:51:100:/120
+ipv6 prefix-list ASSIGNED-PREFIXES-v6 seq 15 permit 2001:DB8::203:0:113:/120
+!
+ipv6 prefix-list BACKBONE-P2P-v6 seq 5 permit 2001:DB8::192:0:2:/120
+!
+ipv6 prefix-list InetPIv6 seq 5 permit 2000::/3 le 48
+!
+ipv6 prefix-list ipv6-bogons seq 5   deny   0000::/96 le 128       ! Formerly defined as the IPv4-compatible-IPv6-address prefix
+ipv6 prefix-list ipv6-bogons seq 10  deny   64:ff9b:1::/48 le 128  ! reserved for Local-Use IPv4/IPv6 Translation [RFC8215]
+ipv6 prefix-list ipv6-bogons seq 15  deny   2001:0000::/23 le 128  ! reserved for IETF Protocol Assignments [RFC2928]
+ipv6 prefix-list ipv6-bogons seq 20  deny   2001:0000::/32 le 128  ! reserved for TEREDO [RFC4380]
+ipv6 prefix-list ipv6-bogons seq 25  deny   2001:0002::/48 le 128  ! reserved for Benchmarking [RFC5180]
+ipv6 prefix-list ipv6-bogons seq 30  deny   2001:3::/32 le 128     ! reserved for AMT [RFC7450]
+ipv6 prefix-list ipv6-bogons seq 35  deny   2001:4:112::/48 le 128 ! reserved for AS112-v6 [RFC7535]
+ipv6 prefix-list ipv6-bogons seq 40  deny   2001:5::/32 le 128     ! reserved for EID Space for LISP [RFC7954]
+ipv6 prefix-list ipv6-bogons seq 45  deny   2001:10::/28 le 128    ! deprecated (formerly ORCHID) [RFC4843]
+ipv6 prefix-list ipv6-bogons seq 50  deny   2001:20::/28 le 128    ! reserved for ORCHIDv2 [RFC7343]
+ipv6 prefix-list ipv6-bogons seq 55  deny   2001:db8::/32 le 128   ! reserved for Documentation [RFC3849]
+ipv6 prefix-list ipv6-bogons seq 60  deny   2002::/16 le 128       ! reserved for 6to4 [RFC3056]
+ipv6 prefix-list ipv6-bogons seq 65  deny   0000::/8 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 70  deny   0100::/8 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 75  deny   0200::/7 le 128        ! Reserved by IETF [RFC4048]
+ipv6 prefix-list ipv6-bogons seq 80  deny   0400::/6 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 85  deny   0800::/5 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 90  deny   1000::/4 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 95  permit 2000::/3 ge 29 le 48   ! Global Unicast [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 100 deny   4000::/3 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 105 deny   6000::/3 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 110 deny   8000::/3 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 115 deny   a000::/3 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 120 deny   c000::/3 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 125 deny   e000::/4 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 130 deny   f000::/5 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 135 deny   f800::/6 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 140 deny   fc00::/7 le 128        ! Unique Local Unicast [RFC4193]
+ipv6 prefix-list ipv6-bogons seq 145 deny   fe00::/9 le 128        ! Reserved by IETF [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 150 deny   fe80::/10 le 128       ! Link-Scoped Unicast [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 155 deny   fec0::/10 le 128       ! Reserved by IETF [RFC3879]
+ipv6 prefix-list ipv6-bogons seq 160 deny   ff00::/8 le 128        ! Multicast [RFC4291]
+ipv6 prefix-list ipv6-bogons seq 165 permit ::/0 ge 29 le 48       ! Allow all other
+!
+ipv6 prefix-list defaultv6 seq 5 permit 2000::/3
+!
+!
+!
+route-map IGP permit 10
+ match interface Loopback0
+ set metric-type type-1
+ set tag 1
+ set origin igp
+!
+route-map IGP permit 20
+ match source-protocol connected
+ match ip address prefix-list BACKBONE-P2P
+ set tag 2
+ set origin igp
+!
+route-map IGP permit 30
+ match source-protocol static
+ match ip address prefix-list ASSIGNED-PREFIXES
+ set tag 3
+ set origin igp
+!
+route-map IGP-v6 permit 10
+ match interface Loopback0
+ set metric-type type-1
+ set tag 1
+ set origin igp
+!
+route-map IGP-v6 permit 20
+ match source-protocol connected
+ match ipv6 address prefix-list BACKBONE-P2P-v6
+ set tag 2
+ set origin igp
+!
+route-map IGP-v6 permit 30
+ match source-protocol static
+ match ipv6 address prefix-list ASSIGNED-PREFIXES-v6
+ set tag 3
+ set origin igp
+!
+!
+route-map redist-to-Inet permit 10
+ match ip address prefix-list default
+ set community 65404928
+!
+route-map redist-to-Inet permit 15
+ match ip address prefix-list InetPAAgg
+ set community 65405028
+!
+route-map redist-to-Inet permit 20
+ match ip address prefix-list InetPASeg
+ set community 65404929
+!
+route-map redist-to-Inet permit 25
+ match ip address prefix-list InetPI
+ set community 65407928 65408028 65408029
+!
+route-map redist-to-Inet permit 30
+ description Catch all - to be removed
+ set community 65414927
+!
+!
+route-map redist-to-Inetv6 permit 10
+ match ipv6 address prefix-list defaultv6
+ set community 65404928
+!
+route-map redist-to-Inetv6 permit 15
+ match ipv6 address prefix-list InetPAAggv6
+ set community 65405028
+!
+route-map redist-to-Inetv6 permit 20
+ match ipv6 address prefix-list InetPASegv6
+ set community 65404929
+!
+route-map redist-to-Inetv6 permit 25
+ match ipv6 address prefix-list InetPIv6
+ set community 65407928 65408028 65408029
+!
+route-map redist-to-Inetv6 permit 30
+ description Catch all - to be removed
+ set community 65414927
+!
+route-map customer_internet_in permit 10
+ set local-preference 500
+!
+route-map private_peering_in permit 10
+ set local-preference 400
+!
+route-map internet_exchange_peering_preferred_in permit 10
+ set local-preference 300
+!
+route-map internet_exchange_peering_other_in permit 10
+ set local-preference 200
+!
+route-map internet_transit_in permit 10
+ set local-preference 75
+!
+!
+!
+control-plane
+!
+banner login ^
+/-------------------------------------------\
+| ROUTER: %h.cisco.tld |
+\-------------------------------------------/
+
+*********************************************
+*                                           *
+*   Router is only for authorized personal  *
+*                                           *
+*   You will be on the wrong side of the    *
+*   law if you do not quickly go away and   *
+*   stop doing any harm the owner of this   *
+*   router you are trying to access !!!!!   *
+*                                           *
+*   In other words: FUCK OFF !!!!!!!!!!!!   *
+*                                           *
+*********************************************
+^
+banner motd ^
+/-------------------------------------------\
+| ROUTER: %h.cisco.tld |
+\-------------------------------------------/
+
+*********************************************
+*                                           *
+*   Router is only for authorized personal  *
+*                                           *
+*   You will be on the wrong side of the    *
+*   law if you do not quickly go away and   *
+*   stop doing any harm the owner of this   *
+*   router you are trying to access !!!!!   *
+*                                           *
+*   In other words: FUCK OFF !!!!!!!!!!!!   *
+*                                           *
+*********************************************
+^
+!
+line con 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+ stopbits 1
+line aux 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+ stopbits 1
+line vty 0 4
+ login
+!
+end
