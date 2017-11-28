@@ -1,0 +1,114 @@
+! Cisco's Control Plane Policing (CoPP) Implementation Notes
+! March 15, 2005
+! Edited by John Kristoff
+! http://aharp.ittns.northwestern.edu/papers/copp.html
+
+!-----------------------------------------------------------
+
+!
+! CLASSES AND POLICIES
+!
+class-map match-all cp-critical-in
+  description Control plane critcal traffic
+  match access-group name cp-critical-in
+class-map match-all cp-important-in
+  description Control plane important traffic
+  match access-group name cp-important-in
+class-map match-all cp-normal-in
+  description Control plane normal traffic
+  match access-group name cp-normal-in
+class-map match-any cp-undesirable-in
+  description Control plane undesirable traffic
+  match access-group name cp-undesirable-in
+class-map match-all cp-default-in
+  description Control plane default traffic
+  match access-group 2
+
+!
+! CLASSES AND POLICIES
+!
+policy-map control-plane-in
+  class cp-critical-in
+  class cp-important-in
+     police 128000 24000 48000 conform-action transmit exceed-action drop
+  class cp-normal-in
+     police 32000 6000 12000 conform-action transmit exceed-action drop
+  class cp-undesirable-in
+     police 32000 1000 1000 conform-action drop exceed-action drop
+  class cp-default-in
+     police 32000 6000 12000 conform-action transmit exceed-action drop
+!
+! CRITICAL
+!
+ip access-list extended cp-critical-in
+ remark Control plane critical traffic - inbound
+ remark OSPF
+ permit ospf host [OSPF neighbor A addr] any
+ permit ospf host [OSPF neighbor B addr] any
+ remark PIM
+ permit pim host [PIM neighbor A addr] any
+ permit pim host [PIM neighbor B addr] any
+ permit pim host [PIM RP A addr] any
+ permit pim host [PIM RP B addr] any
+ remark IGMP
+ permit igmp any 224.0.0.0 15.255.255.255
+ remark DHCP
+ permit udp host 0.0.0.0 host 255.255.255.255 eq bootps
+ permit udp host [DHCP server addr] eq bootps any eq bootps
+ remark BGP
+ permit tcp host [BGP neighbor addr] eq bgp host [local BGP addr]
+ permit tcp host [BGP neighbor addr] host [local BGP addr] eq bgp
+ deny   ip any any
+
+!
+! IMPORTANT
+!
+ip access-list extended cp-important-in
+ remark Control plane important traffic - inbound
+ remark TACACS
+ permit udp host [TACACS server addr] eq tacacs any
+ permit tcp host [TACACS server addr]eq tacacs any
+ remark SSH/TELNET
+ permit tcp [remote vty mgmt subnet] 0.0.0.255 any range 22 telnet
+ remark SNMP
+ permit udp  host [SNMP manager addr] any eq snmp
+ remark NTP
+ permit udp host [NTP server addr] eq ntp any
+ deny   ip any any
+
+!
+! NORMAL
+!
+ip access-list extended cp-normal-in
+ remark Control plane normal traffic - inbound
+ remark ICMP
+ permit icmp any any echo
+ permit icmp any any echo-reply
+ permit icmp any any parameter-problem
+ permit icmp any any time-exceeded
+ permit icmp any any unreachable
+ deny   ip any any
+
+!
+! UNDESIRABLE
+!
+ip access-list extended cp-undesirable-in
+ remark Control plane undesirable traffic - inbound
+ remark NTP
+ permit udp any any eq ntp
+ remark SNMPTRAP
+ permit udp any any eq snmptrap
+ deny   ip any any
+
+!
+! DEFAULT
+!
+access-list 2 remark utility ACL to allow everything
+access-list 2 permit any
+
+!
+! ENABLE COPP
+!
+mls qos
+control-plane
+service-policy input control-plane-in
