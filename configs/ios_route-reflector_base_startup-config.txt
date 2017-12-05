@@ -158,30 +158,24 @@ router ospfv3 998
 !
 router isis
  mpls ldp sync
+ mpls ldp autoconfig level-2
  mpls traffic-eng router-id Loopback0
  mpls traffic-eng level-2
- mpls traffic-eng scanner interval 30
+ mpls traffic-eng scanner interval 30 max-flash 100
+ no mpls traffic-eng multicast-intact
  is-type level-2-only
  domain-password K2btc3E2ZtjuRBsFulbA
  authentication key-chain isis-pw level-2
  ispf level-2
  metric-style wide
- fast-flood 10
- set-overload-bit on-startup 1000
- max-lsp-lifetime 65535
- lsp-refresh-interval 15
- spf-interval 5 1 50
- prc-interval 5 1 50
- lsp-gen-interval 5 1 50
- no hello padding
  log-adjacency-changes
  metric 100000
- skeptical interval 15
  redistribute connected route-map IGP
  redistribute static ip route-map IGP
  passive-interface Loopback0
  maximum-paths 6
  bfd all-interfaces
+ hello padding
 !
 router bgp 998
  !
